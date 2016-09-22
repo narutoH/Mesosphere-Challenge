@@ -1,0 +1,156 @@
+
+//Mesosphere Distributed Applications Engineer Challenge
+//This class ElevatorControlSystem is written by C++
+//Name: Xiaofei Hou
+
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include<queue>
+#include<stack>
+#include <math.h>
+#include <ctime>
+#include <algorithm>
+#include <stdio.h>
+#include<unordered_set>
+
+
+using namespace std;
+
+
+
+
+struct ElevatorStatus
+{
+	int ElevatorID;
+	int FloorNumber;
+	unordered_set<int> GoalFloor;
+};
+
+class ElevatorControlSystem
+{
+public:
+
+	ElevatorControlSystem(int TF,int EN)	//constructor
+	{
+		TotalFloor=TF;
+		ElevatorNumber=EN;
+		unordered_set<int> temp;
+		for(int i=0;i<EN;i++)
+		{
+			FloorNumber.push_back (1);
+			Direction.push_back (0);
+			nextStop.push_back (1);
+			GoalFloor.push_back (temp);
+		}
+	}
+
+	vector<ElevatorStatus> status()		
+	{
+		vector<ElevatorStatus> result;
+		for(int i=0;i<ElevatorNumber;i++)
+		{
+			ElevatorStatus temp;
+			temp.ElevatorID =i;		//ID of elevator is from 0 to (Total number of elevator -1)
+			temp.FloorNumber =FloorNumber[i];
+			temp.GoalFloor =GoalFloor[i];
+			result.push_back (temp);
+		}
+		return result;
+	}
+
+	void update(int EleID, int newFloorNumber, int newGoalFloor=0)	//renew FloorNumber or insert a new goal
+	{
+		
+		FloorNumber[EleID]=newFloorNumber;
+		if(newFloorNumber!=0)
+			FloorNumber[EleID]=newFloorNumber;		
+		if(newGoalFloor!=0)
+			GoalFloor[EleID].insert(newGoalFloor);
+
+	}
+
+	void pickup(int PickupFloor,int PickupDirection)	//find an elevator to pickup guest
+	{
+		int nearEleID;
+		int distance=INT_MAX;
+		for(int i=0;i<ElevatorNumber;i++)
+		{
+			int curDis;		//store the distance between current floor the elevator stay and pickup floor with considering direction
+			if(Direction[i]==0)		//if elevator is idle
+				curDis=abs(FloorNumber[i]-PickupFloor);
+			else if(Direction[i]==1&&PickupDirection==1)	//if elevator go up and pickup need go up
+			{
+				if(FloorNumber[i]<PickupFloor)
+					curDis=PickupFloor-FloorNumber[i];
+				else
+					curDis=2*TotalFloor-FloorNumber[i]+PickupFloor-2;
+			}
+			else if(Direction[i]==1&&PickupDirection==-1)	//if elevator go different direction with pickup
+			{
+				curDis=2*TotalFloor-FloorNumber[i]-PickupFloor;
+			}
+			else if(Direction[i]==-1&&PickupDirection==1)
+			{
+				curDis=FloorNumber[i]+PickupFloor-2;
+			}
+			else		//	//if elevator go down and pickup need go down
+			{
+				if(FloorNumber[i]>PickupFloor)
+					curDis=FloorNumber[i]-PickupFloor;
+				else
+					curDis=2*TotalFloor+FloorNumber[i]-PickupFloor-2;
+			}
+			if(distance>curDis)		//if this elevator is more near, store its ID.
+				nearEleID=i;
+		}
+		update(nearEleID,0,PickupFloor);		//set new goal to selected elevator, FloorNumber is 0 means not to change that parameter.
+	}
+
+	void scheduler()		//schedule the elevator and determine next stop for each elevator
+	{
+		for(int i=0;i<ElevatorNumber;i++)
+		{
+			if(goalFloor[i].empty()==true)	//when the elevator is idle
+			{
+				nextStop[i]=FloorNumber[i];
+				Direction[i]=0;
+			}
+			else
+			{
+				for(int j=FloorNumber[i]+Direction[i];j<=FloorNumber&&j>0;j+=Direction[i])
+				{
+					if(goalFloor[i].find(j)!=goalFloor.end())		//check on current direction, is there any goal floor
+					{
+						nextStop[i]=j;
+						GoalFloor[i].erase(j);
+					}
+					if(j==1||j==TotalFloor)		//if the elevator arrive the ground or the top floor, check the other direction
+					{
+						Direction[i]*=-1;
+						j=FloorNumber[i];
+					}
+				}
+			}
+		}
+	}
+
+	void step()		//let all elevators from origin floor to next stop floor in their goal list, then schedule them again
+	{
+		for(int i=0;i<elevatorNumber;i++)
+		{
+			update(i,nextStop[i]);
+		}
+		scheduler();
+	}
+
+private:
+	vector<int> FloorNumber;  //vector to store current floor of each elevator
+	vector<int> Direction;	//vector to store direction of each elevator, 1 is up, -1 is down, 0 is idle
+	vector<int> nextStop;	//vector to store next stop floor of each evevator, when the elevator is idle, it is same as current floor
+	vector<unordered_set<int>> GoalFloor;	//store the goal floor of each elevator
+
+	int TotalFloor;	//total number of floor
+	int ElevatorNumber;		//total number of evelator
+};
